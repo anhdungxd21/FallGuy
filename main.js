@@ -21,12 +21,21 @@ const GAME_STATE = {
 }
 let gameState = GAME_STATE.MENU;
 
+/** Musics and sounds */
+let themeSong = document.createElement("audio");
+themeSong.src = "sounds/themeSong.mp3";
+let laserShoot = document.createElement("audio");
+laserShoot.src = "sounds/Laser_Shoot.wav";
+let explosion = document.createElement("audio");
+explosion.src = "sounds/Explosion.wav";
+
 /** Game value init */
 let gravity = 1;
+let bossAttack = true;
 let score = 0;
 let timeLoop = 0;
 let bossShow = 0;
-let difficult = 60;
+let difficult = 30;
 let bulletTimeCount = 60;
 let isShoot = true;
 let keys = [];
@@ -113,8 +122,10 @@ function getUserInput() {
             bulletTimeCount = 0;
             isShoot = false;
             isJump = true;
+            laserShoot.play();
         }
         if(gameState == GAME_STATE.MENU) gameState = GAME_STATE.START;
+        console.log("space");
     }
 
     /** Jump Check */
@@ -130,18 +141,8 @@ function getUserInput() {
     player.moveVertical(-goVertical);
 }
 
-function borderDraw() {
-    ctx.beginPath()
-    ctx.moveTo(84,0);
-    ctx.lineTo(84, GAME_HEIGHT);
-    ctx.stroke();
-    ctx.moveTo(500,0);
-    ctx.lineTo(500, GAME_HEIGHT);
-    ctx.stroke();
-    ctx.closePath();
-}//<-------------------------- drop
-
 /** Health Point draw */
+
 for (let i = 0; i < player.hp; i++) {
     let heart = new DrawImage(ctx,"images/heart.png", 10+sizeHeart, 10);
     heartArr.push(heart);
@@ -149,32 +150,13 @@ for (let i = 0; i < player.hp; i++) {
 }
 
 function displayHeart(){
+    console.log(player.hp);
     heartArr.forEach(heart =>{
         heart.loadImage();
     })
 }
 
-function detectCollision(obj1, obj2) {
-    let topObj1 = obj1.position.y;
-    let bottomObj1 = obj1.position.y + obj1.size.h;
-    let leftObj1 = obj1.position.x;
-    let rightObj1 = obj1.position.x + obj1.size.w;
-
-    let topObj2 = obj2.position.y;
-    let bottomObj2 = obj2.position.y + obj2.size.h;
-    let leftObj2 = obj2.position.x;
-    let rightObj2 = obj2.position.x + obj2.size.w;
-
-    let leftCheck = leftObj1 > leftObj2 && leftObj1 < rightObj2;
-    let rightCheck = rightObj1 > leftObj2 && rightObj1 < rightObj2;
-
-    let horizontalCheck = leftCheck || rightCheck;
-
-    return bottomObj1 >= topObj2 &&
-        bottomObj2 >= topObj1 &&
-        horizontalCheck;
-}
-
+/** Spawn Enemy and check collision */
 function spawnEnemy () {
     if (enemyArr.length <= 20 && timeLoop >= difficult){
         let enemy = new Enemy(ctx,32,3)
@@ -183,21 +165,36 @@ function spawnEnemy () {
     }
     enemyArr.forEach((enemy, index) => {
         enemy.move();
-        if (detectCollision(player,enemy)){
+        if (isCollision(player,enemy)){
             enemyArr.splice(index,1);
             player.loseHp();
             heartArr.pop();
+            explosion.play();
         }
         if (enemy.position.y < -300) {
             enemyArr.splice(index,1);
         }
         bulletArr.forEach((bullet, bulletCount)=>{
-            if (detectCollision(bullet,enemy) ){
+            if (isCollision(bullet,enemy) ){
+                score+=50;
                 enemyArr.splice(index,1);
+                explosion.play();
                 bulletArr.splice(bulletCount,1);
             }
         })
     })
+}
+
+/** Collision with boss and push back player */
+function bossCollision(){
+    if(isCollision(player,boss)){
+        player.loseHp();
+        heartArr.pop();
+        explosion.play();
+        if(goVertical < maxJump){
+            goVertical+=20;
+        }
+    }
 }
 
 function backgroundScroll() {
@@ -225,20 +222,34 @@ function clearCache() {
 }
 let boss = new Boss(ctx);
 
+function menuScreen(){
+    ctx.rect(0,0,GAME_WIDTH,GAME_HEIGHT);
+    ctx.fillStyle = "#000";
+    ctx.fill();
+
+    ctx.font = "30px Arial";
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.fillText("Press SPACE To Start",GAME_WIDTH/2,GAME_HEIGHT/2)
+}
+
 function gameOn(){
     ctx.clearRect(0,0,GAME_WIDTH,GAME_HEIGHT);
-    // backgroundScroll();
+    backgroundScroll();
     spawnEnemy ();
-    if(bossShow >= 1000){
-        boss.drawEnemy();
+    drawScore()
+    bossCollision();
+    if (bossShow > 100){
         boss.specialAttack();
+        boss.drawEnemy();
+        if(bossShow > 500){
+            bossShow = 0;
+            boss.showUp(true);
+        }
     }
-
     console.log(bossShow);
     displayHeart();
     clearCache();
-    borderDraw();
-    getUserInput();
     player.drawPlayer();
     player.moveVertical(gravity);
     bulletArr.forEach( bullet => {
@@ -248,8 +259,45 @@ function gameOn(){
     bulletTimeCount++;
     timeLoop++;
     bossShow++;
+    if(player.hp <=0 || player.position.y >= 760){
+        gameState = GAME_STATE.OVER;
+        explosion.play();
+        themeSong.pause();
+    }
 }
 
+function gameOver(){
+    ctx.rect(0,0,GAME_WIDTH,GAME_HEIGHT);
+    ctx.fillStyle = "#000";
+    ctx.fill();
+    ctx.font = "30px Arial";
+    ctx.fillStyle = "red";
+    ctx.textAlign = "center";
+    ctx.fillText("GAME OVER",GAME_WIDTH/2,GAME_HEIGHT/2)
+    ctx.fillText(`Sore: ${score}`,GAME_WIDTH/2,GAME_HEIGHT/2+50);
+}
+
+function room(){
+    switch (gameState) {
+        case GAME_STATE.MENU:
+            menuScreen();
+            break;
+        case GAME_STATE.START:
+            gameOn();
+            break;
+        case GAME_STATE.OVER:
+            gameOver();
+            break;
+
+    }
+}
+
+
+function drawScore(){
+    ctx.font = "20px Arial";
+    ctx.fillStyle = 'red';
+    ctx.fillText(`Score: ${score}`,500,23);
+}
 
 /** Game loop */
 document.body.addEventListener("keydown", function (e) {
@@ -263,6 +311,10 @@ document.body.addEventListener("keyup", function (e) {
 
 window.main = function () {
     window.requestAnimationFrame(main);
-    gameOn();
+    if(gameState == GAME_STATE.START){
+        themeSong.play();
+    }
+    getUserInput();
+    room();
 };
 main();

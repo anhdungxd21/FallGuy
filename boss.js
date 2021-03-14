@@ -12,20 +12,20 @@ class Boss {
         }
         this.position = {
             x: 42,
-            y: 760
+            y: 800
         };
         this.isShowUp = true;
     }
 
     specialAttack(){
         if (this.position.y > 280 && this.isShowUp){
-            this.position.y -=5;
+            this.position.y -=10;
             if(this.position.y <= 280) this.showUp(false);
         } else {
-            if(this.position.y <= 540){
+            if(this.position.y <= 800){
                 this.position.y += 2;
             }else {
-                this.position.y = 541;
+                this.position.y = 800;
             }
         }
     }
