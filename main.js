@@ -24,6 +24,9 @@ let gameState = GAME_STATE.MENU;
 /** Game value init */
 let gravity = 1;
 let score = 0;
+let timeLoop = 0;
+let bossShow = 0;
+let difficult = 60;
 let bulletTimeCount = 60;
 let isShoot = true;
 let keys = [];
@@ -138,19 +141,62 @@ function borderDraw() {
     ctx.closePath();
 }//<-------------------------- drop
 
+/** Health Point draw */
 for (let i = 0; i < player.hp; i++) {
     let heart = new DrawImage(ctx,"images/heart.png", 10+sizeHeart, 10);
     heartArr.push(heart);
-    console.log(heart.position.x);
-    console.log(heart.position.y);
     sizeHeart +=20;
 }
 
 function displayHeart(){
-    console.log(heartArr.length);
     heartArr.forEach(heart =>{
         heart.loadImage();
-        console.log("x:" + heart.position.x + ", y:" +heart.position.y)
+    })
+}
+
+function detectCollision(obj1, obj2) {
+    let topObj1 = obj1.position.y;
+    let bottomObj1 = obj1.position.y + obj1.size.h;
+    let leftObj1 = obj1.position.x;
+    let rightObj1 = obj1.position.x + obj1.size.w;
+
+    let topObj2 = obj2.position.y;
+    let bottomObj2 = obj2.position.y + obj2.size.h;
+    let leftObj2 = obj2.position.x;
+    let rightObj2 = obj2.position.x + obj2.size.w;
+
+    let leftCheck = leftObj1 > leftObj2 && leftObj1 < rightObj2;
+    let rightCheck = rightObj1 > leftObj2 && rightObj1 < rightObj2;
+
+    let horizontalCheck = leftCheck || rightCheck;
+
+    return bottomObj1 >= topObj2 &&
+        bottomObj2 >= topObj1 &&
+        horizontalCheck;
+}
+
+function spawnEnemy () {
+    if (enemyArr.length <= 20 && timeLoop >= difficult){
+        let enemy = new Enemy(ctx,32,3)
+        enemyArr.push(enemy);
+        timeLoop = 0;
+    }
+    enemyArr.forEach((enemy, index) => {
+        enemy.move();
+        if (detectCollision(player,enemy)){
+            enemyArr.splice(index,1);
+            player.loseHp();
+            heartArr.pop();
+        }
+        if (enemy.position.y < -300) {
+            enemyArr.splice(index,1);
+        }
+        bulletArr.forEach((bullet, bulletCount)=>{
+            if (detectCollision(bullet,enemy) ){
+                enemyArr.splice(index,1);
+                bulletArr.splice(bulletCount,1);
+            }
+        })
     })
 }
 
@@ -182,8 +228,13 @@ let boss = new Boss(ctx);
 function gameOn(){
     ctx.clearRect(0,0,GAME_WIDTH,GAME_HEIGHT);
     // backgroundScroll();
-    boss.drawEnemy();
-    boss.specialAttack();
+    spawnEnemy ();
+    if(bossShow >= 1000){
+        boss.drawEnemy();
+        boss.specialAttack();
+    }
+
+    console.log(bossShow);
     displayHeart();
     clearCache();
     borderDraw();
@@ -195,6 +246,8 @@ function gameOn(){
     });
     borderCheck()
     bulletTimeCount++;
+    timeLoop++;
+    bossShow++;
 }
 
 

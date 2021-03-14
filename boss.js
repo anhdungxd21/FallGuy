@@ -6,15 +6,15 @@ class Boss {
             w:500,
             h:500
         };
+        this.defaultPosition = {
+            x:42,
+            y:541
+        }
         this.position = {
             x: 42,
             y: 760
         };
         this.isShowUp = true;
-    }
-    stand(){
-        this.position.x =  Math.floor(Math.random()*2 - 2);
-        this.position.y = Math.floor(Math.random()*2 - 2);
     }
 
     specialAttack(){
