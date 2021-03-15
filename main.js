@@ -195,6 +195,12 @@ function bossCollision(){
             goVertical+=20;
         }
     }
+    bulletArr.forEach((bullet, bulletCount)=>{
+        if (isCollision(bullet,boss) ){
+            explosion.play();
+            bulletArr.splice(bulletCount,1);
+        }
+    })
 }
 
 function backgroundScroll() {
